@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tic Tac Toe</title>
+  <style>
+    :root {
+      --primary-color: #2c3e50;
+      --secondary-color: #34495e;
+      --accent-color: #3498db;
+      --text-color: #ecf0f1;
+      --x-color: #e74c3c;
+      --o-color: #2ecc71;
+      --win-color: #f1c40f;
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Arial', sans-serif;
+    }
+    html {
+      position: relative;
+      min-height: 100vh;
+    }
+    .border-wrapper {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: -2;
+    }
+    .border-wrapper::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(
+        #ff0000, #ff8000, #ffff00, #80ff00, #00ff00,
+        #00ff80, #00ffff, #0080ff, #0000ff, #8000ff,
+        #ff00ff, #ff0080, #ff0000
+      );
+      animation: rotateBorder 3s linear infinite;
+      z-index: -2;
+    }
+    .border-wrapper::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      right: 2px;
+      bottom: 2px;
+      background-color: var(--primary-color);
+      z-index: -1;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      background-color: transparent;
+      color: var(--text-color);
+    }
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(26, 26, 46, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      overflow: hidden;
+    }
+    .loading-content {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 30px;
+      transform: translateY(30px);
+    }
+    .progress-container {
+      width: 400px;
+      height: 20px;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #3498db, #4a90e2);
+      transition: width 0.3s ease;
+    }
+    .percentage {
+      color: #ecf0f1;
+      font-size: 1.2rem;
+      position: absolute;
+      right: -50px;
+    }
+    .loading-title {
+      font-size: 4rem;
+      color: #ecf0f1;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      margin-bottom: 80px;
+      opacity: 0;
+      animation: titleEntrance 1s ease forwards 0.5s;
+      text-shadow: 0 0 20px rgba(52, 152, 219, 0.5);
+    }
+    @keyframes titleEntrance {
+      from { transform: translateY(-50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .presentation-text {
+      font-size: 2rem;
+      color: #ecf0f1;
+      text-align: center;
+      opacity: 0;
+      margin-top: 30px;
+      display: none;
+      position: absolute;
+      bottom: 100px;
+    }
+    .exit-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(44, 62, 80, 0.95);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      opacity: 0;
+      visibility: hidden;
+    }
+    .exit-text {
+      font-size: 2.5rem;
+      color: #ecf0f1;
+      text-align: center;
+      opacity: 0;
+    }
+    .quit-btn {
+      position: fixed;
+      top: 30px;
+      right: 20px;
+      padding: 10px 20px;
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 1001;
+      transition: all 0.3s ease;
+      display: none;
+    }
+    .quit-btn:hover {
+      background-color: #c0392b;
+      transform: translateY(-2px);
+    }
+    @keyframes textEntrance {
+      0% { transform: translateY(50px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes fadeOut {
+      to { opacity: 0; visibility: hidden; }
+    }
+    .game-container {
+      width: 100%;
+      max-width: 500px;
+      padding: 20px;
+      text-align: center;
+      margin-top: 20px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 1s ease;
+    }
+    .game-container.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    @keyframes rotateBorder {
+      100% { transform: rotate(360deg); }
+    }
+    h1 {
+      margin-bottom: 20px;
+      font-size: 2.5rem;
+      color: var(--accent-color);
+    }
+    .scoreboard {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: var(--secondary-color);
+      border-radius: 10px;
+    }
+    .score {
+      font-size: 1.5rem;
+    }
+    .x-score { color: var(--x-color); }
+    .o-score { color: var(--o-color); }
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .cell {
+      position: relative;
+      aspect-ratio: 1/1;
+      background-color: transparent;
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 4rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+    .cell::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(
+        #ff0000, #ff8000, #ffff00, #80ff00, #00ff00,
+        #00ff80, #00ffff, #0080ff, #0000ff, #8000ff,
+        #ff00ff, #ff0080, #ff0000
+      );
+      animation: rotateBorder 3s linear infinite;
+      z-index: 0;
+      border-radius: 12px;
+    }
+    .cell::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      right: 2px;
+      bottom: 2px;
+      background-color: var(--secondary-color);
+      border-radius: 8px;
+      z-index: 1;
+    }
+    .cell-content {
+      position: relative;
+      z-index: 2;
+    }
+    .cell.x { color: var(--x-color); }
+    .cell.o { color: var(--o-color); }
+    .cell.win { background-color: var(--win-color); color: var(--primary-color); }
+    .status {
+      margin-bottom: 20px;
+      font-size: 1.5rem;
+      min-height: 2rem;
+    }
+    .restart-btn {
+      padding: 12px 25px;
+      background-color: var(--accent-color);
+      color: var(--text-color);
+      border: none;
+      border-radius: 5px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .restart-btn:hover {
+      background-color: #2980b9;
+      transform: translateY(-3px);
+    }
+
+    /* Mobile Responsive Adjustments */
+    @media only screen and (max-width: 768px) {
+      .loading-title {
+        font-size: 2.5rem;
+        margin-bottom: 40px;
+        text-align: center;
+        padding: 0 15px;
+      }
+      .loading-content {
+        flex-direction: column;
+        gap: 10px;
+        transform: translateY(0);
+        width: 90%;
+      }
+      .progress-container {
+        width: 100%;
+        height: 15px;
+      }
+      .percentage {
+        position: static;
+        font-size: 1rem;
+        text-align: center;
+      }
+      .presentation-text {
+        font-size: 1.5rem;
+        bottom: 50px;
+        padding: 0 15px;
+      }
+      .loading-screen {
+        padding: 20px;
+        justify-content: flex-start;
+        padding-top: 30vh;
+      }
+      .border-wrapper::before {
+        animation-duration: 6s;
+      }
+      .quit-btn {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        top: 1px;
+        padding: 12px 25px;
+        margin-bottom: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="border-wrapper"></div>
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loading-title">Tic Tac Toe</div>
+    <div class="loading-content">
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div class="percentage" id="percentage">0%</div>
+    </div>
+    <div class="presentation-text" id="presentationText">Azmeer Games And Productions Presents</div>
+  </div>
+  <button class="quit-btn" id="quit">Quit</button>
+  <div class="exit-screen" id="exitScreen">
+    <div class="exit-text">Thanks for playing our game!</div>
+  </div>
+  <div class="game-container">
+    <h1>Tic Tac Toe</h1>
+    <div class="scoreboard">
+      <div class="score x-score">Player 1: 0</div>
+      <div class="score o-score">Player 2: 0</div>
+    </div>
+    <div class="status" id="status">Player 1's turn</div>
+    <div class="game-board" id="board">
+      <div class="cell" data-index="0"><span class="cell-content"></span></div>
+      <div class="cell" data-index="1"><span class="cell-content"></span></div>
+      <div class="cell" data-index="2"><span class="cell-content"></span></div>
+      <div class="cell" data-index="3"><span class="cell-content"></span></div>
+      <div class="cell" data-index="4"><span class="cell-content"></span></div>
+      <div class="cell" data-index="5"><span class="cell-content"></span></div>
+      <div class="cell" data-index="6"><span class="cell-content"></span></div>
+      <div class="cell" data-index="7"><span class="cell-content"></span></div>
+      <div class="cell" data-index="8"><span class="cell-content"></span></div>
+    </div>
+    <button class="restart-btn" id="restart">Restart Game</button>
+  </div>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const loadingScreen = document.getElementById('loadingScreen');
+      const progressBar = document.getElementById('progressBar');
+      const percentage = document.getElementById('percentage');
+      const presentationText = document.getElementById('presentationText');
+      const gameContainer = document.querySelector('.game-container');
+      const quitButton = document.getElementById('quit');
+      const exitScreen = document.getElementById('exitScreen');
+      const exitText = document.querySelector('.exit-text');
+      const board = document.getElementById('board');
+      const cells = document.querySelectorAll('.cell');
+      const status = document.getElementById('status');
+      const restartBtn = document.getElementById('restart');
+      const xScoreElement = document.querySelector('.x-score');
+      const oScoreElement = document.querySelector('.o-score');
+
+      let gameState = ['', '', '', '', '', '', '', '', ''];
+      let currentPlayer = 'X';
+      let gameActive = true;
+      let scores = { X: 0, O: 0 };
+
+      const winningConditions = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
+      ];
+
+      // Loading screen animation
+      let progress = 0;
+      const loadingInterval = setInterval(() => {
+        progress += 1;
+        progressBar.style.width = `${progress}%`;
+        percentage.textContent = `${progress}%`;
+
+        if (progress >= 100) {
+          clearInterval(loadingInterval);
+          document.querySelector('.loading-content').style.display = 'none';
+          presentationText.style.display = 'block';
+          presentationText.style.animation = 'textEntrance 1.5s ease forwards';
+          
+          setTimeout(() => {
+            loadingScreen.style.animation = 'fadeOut 1s ease forwards';
+            setTimeout(() => {
+              loadingScreen.style.display = 'none';
+              gameContainer.classList.add('visible');
+              quitButton.style.display = 'block';
+            }, 1000);
+          }, 2000);
+        }
+      }, 30);
+
+      // Enhanced quit button functionality
+      quitButton.addEventListener('click', () => {
+        gameContainer.classList.remove('visible');
+        quitButton.style.display = 'none';
+        exitScreen.style.visibility = 'visible';
+        exitScreen.style.opacity = '1';
+        exitText.style.animation = 'textEntrance 1s ease forwards';
+
+        setTimeout(() => {
+          exitScreen.style.animation = 'fadeOut 1s ease forwards';
+          exitScreen.addEventListener('animationend', () => {
+            window.close();
+          }, { once: true });
+        }, 2000);
+      });
+
+      function initGame() {
+        gameState = ['', '', '', '', '', '', '', '', ''];
+        currentPlayer = 'X';
+        gameActive = true;
+        status.textContent = `Player 1's turn`;
+        cells.forEach(cell => {
+          const contentSpan = cell.querySelector('.cell-content');
+          contentSpan.textContent = '';
+          cell.classList.remove('x', 'o', 'win');
+        });
+      }
+
+      function handleCellClick(e) {
+        const clickedCell = e.target.closest('.cell');
+        if (!clickedCell) return;
+        
+        const clickedCellIndex = parseInt(clickedCell.getAttribute('data-index'));
+        if (gameState[clickedCellIndex] !== '' || !gameActive) return;
+
+        gameState[clickedCellIndex] = currentPlayer;
+        const contentSpan = clickedCell.querySelector('.cell-content');
+        contentSpan.textContent = currentPlayer;
+        clickedCell.classList.add(currentPlayer.toLowerCase());
+
+        checkResult();
+      }
+
+      function checkResult() {
+        let roundWon = false;
+        let winningCondition = null;
+
+        for (let condition of winningConditions) {
+          const [a, b, c] = condition;
+          if (gameState[a] && gameState[a] === gameState[b] && gameState[a] === gameState[c]) {
+            roundWon = true;
+            winningCondition = condition;
+            break;
+          }
+        }
+
+        if (roundWon) {
+          status.textContent = `${currentPlayer === 'X' ? 'Player 1' : 'Player 2'} wins!`;
+          scores[currentPlayer]++;
+          xScoreElement.textContent = `Player 1: ${scores.X}`;
+          oScoreElement.textContent = `Player 2: ${scores.O}`;
+          gameActive = false;
+          highlightWinningCells(winningCondition);
+          return;
+        }
+
+        if (!gameState.includes('')) {
+          status.textContent = 'Game ended in a draw!';
+          gameActive = false;
+          return;
+        }
+
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        status.textContent = `${currentPlayer === 'X' ? 'Player 1' : 'Player 2'}'s turn`;
+      }
+
+      function highlightWinningCells(cellsIndex) {
+        cellsIndex.forEach(index => {
+          cells[index].classList.add('win');
+        });
+      }
+
+      cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+      restartBtn.addEventListener('click', initGame);
+
+      initGame();
+    });
+  </script>
+</body>
+</html>
